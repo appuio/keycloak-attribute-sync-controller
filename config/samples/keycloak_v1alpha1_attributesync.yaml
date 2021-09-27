@@ -1,0 +1,7 @@
+apiVersion: keycloak.appuio.ch/v1alpha1
+kind: AttributeSync
+metadata:
+  name: attributesync-sample
+spec:
+  # Add fields here
+  foo: bar
