@@ -7,6 +7,7 @@
 *.dylib
 bin
 testbin/*
+keycloak-attribute-sync-controller
 
 # Test binary, build with `go test -c`
 *.test
@@ -20,6 +21,9 @@ testbin/*
 
 # editor and IDE paraphernalia
 .idea
+.vscode
 *.swp
 *.swo
 *~
+
+dist/

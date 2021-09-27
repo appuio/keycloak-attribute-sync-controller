@@ -5,7 +5,7 @@ metadata:
   name: attributesync-viewer-role
 rules:
 - apiGroups:
-  - keycloak.appuio.ch
+  - keycloak.appuio.io
   resources:
   - attributesyncs
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - keycloak.appuio.ch
+  - keycloak.appuio.io
   resources:
   - attributesyncs/status
   verbs:

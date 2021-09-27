@@ -1,7 +1,14 @@
-apiVersion: keycloak.appuio.ch/v1alpha1
+apiVersion: keycloak.appuio.io/v1alpha1
 kind: AttributeSync
 metadata:
-  name: attributesync-sample
+  name: sync-special-attribute
 spec:
-  # Add fields here
-  foo: bar
+  url: https://keycloak.example.com/
+  realm: example
+  loginRealm: master
+  credentialsSecret:
+    name: keycloack-read-users-secrets
+    namespace: ...
+  attribute: example.com/special-attribute
+  targetAnnotation: example.com/special-attribute
+  schedule: "@every 5m"

@@ -7,7 +7,15 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - keycloak.appuio.ch
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - keycloak.appuio.io
   resources:
   - attributesyncs
   verbs:
@@ -19,16 +27,26 @@ rules:
   - update
   - watch
 - apiGroups:
-  - keycloak.appuio.ch
+  - keycloak.appuio.io
   resources:
   - attributesyncs/finalizers
   verbs:
   - update
 - apiGroups:
-  - keycloak.appuio.ch
+  - keycloak.appuio.io
   resources:
   - attributesyncs/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - user.openshift.io
+  resources:
+  - users
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch

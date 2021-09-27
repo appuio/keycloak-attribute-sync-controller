@@ -8,4 +8,4 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: 0e05254e.appuio.ch
+  resourceName: 0e05254e.appuio.io

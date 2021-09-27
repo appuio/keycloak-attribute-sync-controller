@@ -1,19 +1,3 @@
-/*
-Copyright 2021 APPUiO.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package main
 
 import (
@@ -24,6 +8,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	userv1 "github.com/openshift/api/user/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -33,6 +18,7 @@ import (
 
 	keycloakv1alpha1 "github.com/appuio/keycloak-attribute-sync-controller/api/v1alpha1"
 	"github.com/appuio/keycloak-attribute-sync-controller/controllers"
+	"github.com/appuio/keycloak-attribute-sync-controller/internal/pkg/keycloak"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -46,6 +32,8 @@ func init() {
 
 	utilruntime.Must(keycloakv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+
+	utilruntime.Must(userv1.AddToScheme(scheme))
 }
 
 func main() {
@@ -71,7 +59,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "0e05254e.appuio.ch",
+		LeaderElectionID:       "0e05254e.appuio.io",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -81,6 +69,8 @@ func main() {
 	if err = (&controllers.AttributeSyncReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+
+		KeycloakClientFactory: keycloak.NewClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AttributeSync")
 		os.Exit(1)
