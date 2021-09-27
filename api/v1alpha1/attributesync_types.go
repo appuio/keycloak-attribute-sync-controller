@@ -25,17 +25,51 @@ import (
 
 // AttributeSyncSpec defines the desired state of AttributeSync
 type AttributeSyncSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// CaSecret is a reference to a secret containing a CA certificate to communicate to the Keycloak server
+	// +kubebuilder:validation:Optional
+	CaSecret *SecretRef `json:"caSecret,omitempty"`
 
-	// Foo is an example field of AttributeSync. Edit attributesync_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// CredentialsSecret is a reference to a secret containing authentication details for the Keycloak server
+	// +kubebuilder:validation:Required
+	CredentialsSecret *SecretRef `json:"credentialsSecret"`
+
+	// Insecure specifies whether to allow for unverified certificates to be used when communicating to Keycloak
+	// +kubebuilder:validation:Optional
+	Insecure bool `json:"insecure,omitempty"`
+
+	// LoginRealm is the Keycloak realm to authenticate against
+	// +kubebuilder:validation:Optional
+	LoginRealm string `json:"loginRealm,omitempty"`
+
+	// Realm is the realm containing the groups to synchronize against
+	// +kubebuilder:validation:Required
+	Realm string `json:"realm"`
+
+	// URL is the location of the Keycloak server
+	// +kubebuilder:validation:Required
+	URL string `json:"url"`
+
+	// Attribute specifies the attribute to sync
+	// +kubebuilder:validation:Required
+	Attribute string `json:"attribute"`
+
+	// TargetLabel specifies the label to sync the attribute to
+	// +kubebuilder:validation:Optional
+	TargetLabel string `json:"target_label,omitempty"`
+
+	// TargetAnnotation specifies the label to sync the attribute to
+	// +kubebuilder:validation:Optional
+	TargetAnnotation string `json:"target_annotation,omitempty"`
 }
 
 // AttributeSyncStatus defines the observed state of AttributeSync
 type AttributeSyncStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// +kubebuilder:validation:Optional
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+
+	// LastSyncSuccessTime represents the time last synchronization completed successfully
+	// +kubebuilder:validation:Optional
+	LastSyncSuccessTime *metav1.Time `json:"lastSyncSuccessTime,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -57,6 +91,22 @@ type AttributeSyncList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []AttributeSync `json:"items"`
+}
+
+// SecretRef represents a reference to an item within a Secret
+// +k8s:openapi-gen=true
+type SecretRef struct {
+	// Name represents the name of the secret
+	// +kubebuilder:validation:Required
+	Name string `json:"name"`
+
+	// Namespace represents the namespace containing the secret
+	// +kubebuilder:validation:Required
+	Namespace string `json:"namespace"`
+
+	// Key represents the specific key to reference from the secret
+	// +kubebuilder:validation:Optional
+	Key string `json:"key,omitempty"`
 }
 
 func init() {
