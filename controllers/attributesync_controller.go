@@ -23,8 +23,8 @@ import (
 
 	"github.com/Nerzal/gocloak/v9"
 	keycloakv1alpha1 "github.com/appuio/keycloak-attribute-sync-controller/api/v1alpha1"
-	"github.com/go-logr/logr"
 	userv1 "github.com/openshift/api/user/v1"
+	"github.com/robfig/cron"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,15 +53,8 @@ type AttributeSyncReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the AttributeSync object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+	_ = log.FromContext(ctx)
 
 	instance := &keycloakv1alpha1.AttributeSync{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
@@ -90,9 +83,20 @@ func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, fmt.Errorf("error fetching users: %w", err)
 	}
 
-	err = r.syncUsers(ctx, logger, users, instance.Spec.Attribute, instance.Spec.TargetLabel, instance.Spec.TargetAnnotation)
+	err = r.syncUsers(ctx, users, instance.Spec.Attribute, instance.Spec.TargetLabel, instance.Spec.TargetAnnotation)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error syncing users: %w", err)
+	}
 
-	return ctrl.Result{}, err
+	if instance.Spec.Schedule != "" {
+		sched, _ := cron.ParseStandard(instance.Spec.Schedule)
+
+		currentTime := time.Now()
+		nextScheduledTime := sched.Next(currentTime)
+		return ctrl.Result{RequeueAfter: nextScheduledTime.Sub(currentTime)}, nil
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -126,10 +130,11 @@ func (r *AttributeSyncReconciler) fetchCredentials(ctx context.Context, secretNa
 	return string(username), string(password), nil
 }
 
-func (r *AttributeSyncReconciler) syncUsers(ctx context.Context, l logr.Logger, users []*gocloak.User, attributeKey, targetLabel, targetAnnotation string) error {
+func (r *AttributeSyncReconciler) syncUsers(ctx context.Context, users []*gocloak.User, attributeKey, targetLabel, targetAnnotation string) error {
+	l := log.FromContext(ctx)
 	syncTime := time.Now().UTC().Format(time.RFC3339)
+
 	for _, user := range users {
-	RETRY:
 		l := l.WithValues("userid", user.ID, "username", user.Username)
 		if user.Attributes == nil {
 			l.V(1).Info("user has no attributes - skipping")
@@ -142,6 +147,7 @@ func (r *AttributeSyncReconciler) syncUsers(ctx context.Context, l logr.Logger, 
 		}
 		attribute := attributes[0]
 
+	RETRY_ON_CONFLICT:
 		ocpuser := userv1.User{}
 		err := r.Client.Get(ctx, types.NamespacedName{Name: *user.Username}, &ocpuser)
 		if err != nil {
@@ -164,12 +170,11 @@ func (r *AttributeSyncReconciler) syncUsers(ctx context.Context, l logr.Logger, 
 			}
 			ocpuser.ObjectMeta.Labels[targetLabel] = attribute
 		}
-
-		ocpuser.ObjectMeta.Annotations["TODO"] = syncTime
+		ocpuser.ObjectMeta.Annotations["attributesync.keycloak.appuio.ch/sync-time"] = syncTime
 		if err := r.Client.Update(ctx, &ocpuser); err != nil {
 			if apierrors.IsConflict(err) {
 				// The User has been updated since we read it.
-				goto RETRY
+				goto RETRY_ON_CONFLICT
 			}
 			if apierrors.IsNotFound(err) {
 				continue

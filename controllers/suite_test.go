@@ -61,45 +61,11 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-	userCRD := &apiextv1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "users.user.openshift.io",
-		},
-		Spec: apiextv1.CustomResourceDefinitionSpec{
-			Group: "user.openshift.io",
-			Versions: []apiextv1.CustomResourceDefinitionVersion{
-				{
-					Name:    "v1",
-					Served:  true,
-					Storage: true,
-					Schema: &apiextv1.CustomResourceValidation{
-						OpenAPIV3Schema: &apiextv1.JSONSchemaProps{
-							Type: "object",
-							Properties: map[string]apiextv1.JSONSchemaProps{
-								"apiVersion": {Type: "string"},
-								"kind":       {Type: "string"},
-								"metadata":   {Type: "object"},
-								"spec":       {Type: "object"},
-							},
-						},
-					},
-					Subresources: &apiextv1.CustomResourceSubresources{Status: &apiextv1.CustomResourceSubresourceStatus{}},
-				},
-			},
-			Scope: apiextv1.ClusterScoped,
-			Names: apiextv1.CustomResourceDefinitionNames{
-				Kind:     "User",
-				Singular: "user",
-				Plural:   "users",
-			},
-		},
-	}
-
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
-		CRDs:                  []client.Object{userCRD},
+		CRDs:                  []client.Object{ocpUserCRD},
 	}
 
 	cfg, err := testEnv.Start()
@@ -150,3 +116,31 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
+
+var ocpUserCRD = &apiextv1.CustomResourceDefinition{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "users.user.openshift.io",
+	},
+	Spec: apiextv1.CustomResourceDefinitionSpec{
+		Group: "user.openshift.io",
+		Versions: []apiextv1.CustomResourceDefinitionVersion{
+			{
+				Name:    "v1",
+				Served:  true,
+				Storage: true,
+				Schema: &apiextv1.CustomResourceValidation{
+					OpenAPIV3Schema: &apiextv1.JSONSchemaProps{
+						Type: "object",
+					},
+				},
+				Subresources: &apiextv1.CustomResourceSubresources{Status: &apiextv1.CustomResourceSubresourceStatus{}},
+			},
+		},
+		Scope: apiextv1.ClusterScoped,
+		Names: apiextv1.CustomResourceDefinitionNames{
+			Kind:     "User",
+			Singular: "user",
+			Plural:   "users",
+		},
+	},
+}
