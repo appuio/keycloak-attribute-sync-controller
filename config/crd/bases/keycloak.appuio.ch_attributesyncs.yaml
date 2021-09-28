@@ -88,6 +88,9 @@ spec:
                 description: Realm is the realm containing the groups to synchronize
                   against
                 type: string
+              schedule:
+                description: Schedule represents a cron based configuration for synchronization
+                type: string
               target_annotation:
                 description: TargetAnnotation specifies the label to sync the attribute
                   to

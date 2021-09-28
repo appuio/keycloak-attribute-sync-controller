@@ -24,6 +24,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	userv1 "github.com/openshift/api/user/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -33,6 +34,7 @@ import (
 
 	keycloakv1alpha1 "github.com/appuio/keycloak-attribute-sync-controller/api/v1alpha1"
 	"github.com/appuio/keycloak-attribute-sync-controller/controllers"
+	"github.com/appuio/keycloak-attribute-sync-controller/internal/pkg/keycloak"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -46,6 +48,8 @@ func init() {
 
 	utilruntime.Must(keycloakv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+
+	utilruntime.Must(userv1.AddToScheme(scheme))
 }
 
 func main() {
@@ -81,6 +85,8 @@ func main() {
 	if err = (&controllers.AttributeSyncReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+
+		KeycloakClientFactory: keycloak.NewClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AttributeSync")
 		os.Exit(1)
