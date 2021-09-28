@@ -34,6 +34,7 @@ var _ = Describe("AttributeSync controller", func() {
 			keycloakFakeClient.Users = []*gocloak.User{
 				keycloak.UserWithAttribute(username, attribute, value),
 				keycloak.UserWithAttribute("second-user", attribute, "SuperCyberBlockchainAI"),
+				{}, // Username is optional in keycloak
 				{Username: stringPtr("nil-attributes")},
 				{Username: stringPtr("no-attributes"), Attributes: &map[string][]string{}},
 			}
