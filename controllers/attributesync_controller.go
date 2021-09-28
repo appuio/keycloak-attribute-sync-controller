@@ -27,6 +27,7 @@ import (
 	"github.com/robfig/cron"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -132,7 +133,6 @@ func (r *AttributeSyncReconciler) fetchCredentials(ctx context.Context, secretNa
 
 func (r *AttributeSyncReconciler) syncUsers(ctx context.Context, users []*gocloak.User, attributeKey, targetLabel, targetAnnotation string) error {
 	l := log.FromContext(ctx)
-	syncTime := time.Now().UTC().Format(time.RFC3339)
 
 	for _, user := range users {
 		l := l.WithValues("userid", user.ID, "username", user.Username)
@@ -147,41 +147,61 @@ func (r *AttributeSyncReconciler) syncUsers(ctx context.Context, users []*gocloa
 		}
 		attribute := attributes[0]
 
-	RETRY_ON_CONFLICT:
-		ocpuser := userv1.User{}
-		err := r.Client.Get(ctx, types.NamespacedName{Name: *user.Username}, &ocpuser)
+		err := r.setAttributeOnUser(ctx, types.NamespacedName{Name: *user.Username}, attribute, targetLabel, targetAnnotation)
 		if err != nil {
-			if apierrors.IsNotFound(err) {
-				l.V(1).Info("no OCP user object found - skipping")
-				continue
-			}
-			return fmt.Errorf("error fetching user: %w", err)
-		}
-
-		if ocpuser.ObjectMeta.Annotations == nil {
-			ocpuser.ObjectMeta.Annotations = map[string]string{}
-		}
-		if targetAnnotation != "" {
-			ocpuser.ObjectMeta.Annotations[targetAnnotation] = attribute
-		}
-		if targetLabel != "" {
-			if ocpuser.ObjectMeta.Labels == nil {
-				ocpuser.ObjectMeta.Labels = map[string]string{}
-			}
-			ocpuser.ObjectMeta.Labels[targetLabel] = attribute
-		}
-		ocpuser.ObjectMeta.Annotations["attributesync.keycloak.appuio.ch/sync-time"] = syncTime
-		if err := r.Client.Update(ctx, &ocpuser); err != nil {
-			if apierrors.IsConflict(err) {
-				// The User has been updated since we read it.
-				goto RETRY_ON_CONFLICT
-			}
-			if apierrors.IsNotFound(err) {
-				continue
-			}
-			return fmt.Errorf("unable to update user: %w", err)
+			return err
 		}
 	}
 
 	return nil
+}
+
+func (r *AttributeSyncReconciler) setAttributeOnUser(ctx context.Context, key types.NamespacedName, attribute, targetLabel, targetAnnotation string) error {
+	l := log.FromContext(ctx)
+
+RETRY_ON_CONFLICT:
+	ocpuser := userv1.User{}
+	err := r.Client.Get(ctx, key, &ocpuser)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			l.V(1).Info("no OCP user object found - skipping")
+			return nil
+		}
+		return fmt.Errorf("error fetching user: %w", err)
+	}
+
+	if targetAnnotation != "" {
+		metaSetAnnotation(&ocpuser.ObjectMeta, targetAnnotation, attribute)
+	}
+	if targetLabel != "" {
+		metaSetLabel(&ocpuser.ObjectMeta, targetLabel, attribute)
+	}
+	metaSetAnnotation(&ocpuser.ObjectMeta, "attributesync.keycloak.appuio.ch/sync-time", time.Now().Format(time.RFC3339Nano))
+
+	if err := r.Client.Update(ctx, &ocpuser); err != nil {
+		if apierrors.IsConflict(err) {
+			// The User has been updated since we read it.
+			goto RETRY_ON_CONFLICT
+		}
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("unable to update user: %w", err)
+	}
+
+	return nil
+}
+
+func metaSetAnnotation(meta *metav1.ObjectMeta, key, value string) {
+	if meta.Annotations == nil {
+		meta.Annotations = map[string]string{}
+	}
+	meta.Annotations[key] = value
+}
+
+func metaSetLabel(meta *metav1.ObjectMeta, key, value string) {
+	if meta.Labels == nil {
+		meta.Labels = map[string]string{}
+	}
+	meta.Labels[key] = value
 }

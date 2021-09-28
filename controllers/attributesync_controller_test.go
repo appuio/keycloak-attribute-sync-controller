@@ -90,7 +90,7 @@ var _ = Describe("AttributeSync controller", func() {
 			By("By querying user annotations")
 			Eventually(lookupAnnotationOnUser(ctx, username, target), "10s", "250ms").Should(Equal(value))
 			Eventually(lookupAnnotationOnUser(ctx, username, "attributesync.keycloak.appuio.ch/sync-time"), "10s", "250ms").Should(
-				WithTransform(mustParseRFC3339, BeTemporally(">=", reconcileTime.Truncate(time.Second))),
+				WithTransform(mustParseRFC3339, BeTemporally(">=", reconcileTime)),
 			)
 		})
 
@@ -115,7 +115,7 @@ var _ = Describe("AttributeSync controller", func() {
 			By("By querying user annotations")
 			Eventually(lookupLabelOnUser(ctx, username, target), "10s", "250ms").Should(Equal(value))
 			Eventually(lookupAnnotationOnUser(ctx, username, "attributesync.keycloak.appuio.ch/sync-time"), "10s", "250ms").Should(
-				WithTransform(mustParseRFC3339, BeTemporally(">=", reconcileTime.Truncate(time.Second))),
+				WithTransform(mustParseRFC3339, BeTemporally(">=", reconcileTime)),
 			)
 		})
 
@@ -170,7 +170,7 @@ func lookupLabelOnUser(ctx context.Context, username, label string) func() (stri
 }
 
 func mustParseRFC3339(r string) time.Time {
-	t, err := time.Parse(time.RFC3339, r)
+	t, err := time.Parse(time.RFC3339Nano, r)
 	if err != nil {
 		panic(fmt.Errorf("could not parse time: %w", err))
 	}
