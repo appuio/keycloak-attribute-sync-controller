@@ -2,6 +2,7 @@ package keycloak
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Nerzal/gocloak/v9"
 )
@@ -19,6 +20,21 @@ func (f *FakeClient) LoginAdmin(ctx context.Context, username, password, realm s
 
 func (f *FakeClient) GetUsers(ctx context.Context, accessToken, realm string, params gocloak.GetUsersParams) ([]*gocloak.User, error) {
 	return f.Users, nil
+}
+
+func (f *FakeClient) FakeClientSetUserAttribute(username string, attributeKey string, attributeValues ...string) error {
+	for _, user := range f.Users {
+		if user.Username == nil || *user.Username != username {
+			continue
+		}
+		if user.Attributes == nil {
+			user.Attributes = &map[string][]string{}
+		}
+		attrs := *user.Attributes
+		attrs[attributeKey] = attributeValues
+		return nil
+	}
+	return fmt.Errorf("user '%s' not found", username)
 }
 
 func UserWithAttribute(username string, attributeKey string, attributeValues ...string) *gocloak.User {
