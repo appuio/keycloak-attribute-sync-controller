@@ -33,6 +33,7 @@ import (
 
 	keycloakv1alpha1 "github.com/appuio/keycloak-attribute-sync-controller/api/v1alpha1"
 	"github.com/appuio/keycloak-attribute-sync-controller/controllers"
+	"github.com/appuio/keycloak-attribute-sync-controller/internal/pkg/keycloak"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -81,6 +82,8 @@ func main() {
 	if err = (&controllers.AttributeSyncReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+
+		KeycloakClientFactory: keycloak.NewClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AttributeSync")
 		os.Exit(1)
