@@ -4,10 +4,10 @@ go 1.17
 
 require (
 	github.com/Nerzal/gocloak/v9 v9.0.2
-	github.com/go-logr/logr v0.3.0
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/openshift/api v3.9.0+incompatible
+	github.com/robfig/cron v1.2.0
 	k8s.io/api v0.20.2
 	k8s.io/apiextensions-apiserver v0.20.1
 	k8s.io/apimachinery v0.20.2
@@ -30,6 +30,7 @@ require (
 	github.com/evanphx/json-patch v4.9.0+incompatible // indirect
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/go-logr/logr v0.3.0 // indirect
 	github.com/go-logr/zapr v0.2.0 // indirect
 	github.com/go-resty/resty/v2 v2.3.0 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
@@ -52,7 +53,6 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.10.0 // indirect
 	github.com/prometheus/procfs v0.2.0 // indirect
-	github.com/robfig/cron v1.2.0 // indirect
 	github.com/segmentio/ksuid v1.0.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.uber.org/atomic v1.6.0 // indirect
