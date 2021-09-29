@@ -7,6 +7,7 @@
 *.dylib
 bin
 testbin/*
+keycloak-attribute-sync-controller
 
 # Test binary, build with `go test -c`
 *.test
@@ -23,3 +24,5 @@ testbin/*
 *.swp
 *.swo
 *~
+
+dist/
