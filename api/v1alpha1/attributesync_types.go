@@ -55,11 +55,11 @@ type AttributeSyncSpec struct {
 
 	// TargetLabel specifies the label to sync the attribute to
 	// +kubebuilder:validation:Optional
-	TargetLabel string `json:"target_label,omitempty"`
+	TargetLabel string `json:"targetLabel,omitempty"`
 
 	// TargetAnnotation specifies the label to sync the attribute to
 	// +kubebuilder:validation:Optional
-	TargetAnnotation string `json:"target_annotation,omitempty"`
+	TargetAnnotation string `json:"targetAnnotation,omitempty"`
 
 	// Schedule represents a cron based configuration for synchronization
 	// +kubebuilder:validation:Optional
