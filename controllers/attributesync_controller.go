@@ -49,7 +49,7 @@ type AttributeSyncReconciler struct {
 //+kubebuilder:rbac:groups=keycloak.appuio.ch,resources=attributesyncs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=keycloak.appuio.ch,resources=attributesyncs/finalizers,verbs=update
 
-//+kubebuilder:rbac:groups=user.openshift.io,resources=users,verbs=get;update;patch
+//+kubebuilder:rbac:groups=user.openshift.io,resources=users,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
