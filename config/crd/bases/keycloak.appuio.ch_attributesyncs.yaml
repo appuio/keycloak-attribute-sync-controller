@@ -91,11 +91,11 @@ spec:
               schedule:
                 description: Schedule represents a cron based configuration for synchronization
                 type: string
-              target_annotation:
+              targetAnnotation:
                 description: TargetAnnotation specifies the label to sync the attribute
                   to
                 type: string
-              target_label:
+              targetLabel:
                 description: TargetLabel specifies the label to sync the attribute
                   to
                 type: string
