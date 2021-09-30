@@ -102,8 +102,14 @@ func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	r.setSuccess(ctx, instance)
 
 	if instance.Spec.Schedule != "" {
+		// TODO(bastjan): Should have a validating webhook. It's currently not really
+		//                possible to use kustomize in commodore so it would be quite
+		//                complicated to implement in the component.
 		sched, err := cron.ParseStandard(instance.Spec.Schedule)
-		l.Error(err, "Error scheduling next reconcile")
+		if err != nil {
+			l.Error(err, "Error parsing reconciling schedule")
+			return ctrl.Result{}, err
+		}
 
 		currentTime := time.Now()
 		nextScheduledTime := sched.Next(currentTime)
