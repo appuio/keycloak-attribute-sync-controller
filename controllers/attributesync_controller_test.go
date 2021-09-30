@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	userv1 "github.com/openshift/api/user/v1"
+	"github.com/redhat-cop/operator-utils/pkg/util/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -145,6 +147,67 @@ var _ = Describe("AttributeSync controller", func() {
 			})
 		})
 	})
+
+	Context("When having troubles connecting to Keycloak", func() {
+		BeforeEach(func() {
+			ctx := context.Background()
+
+			By("By having a keycloak login error")
+			keycloakFakeClient.FakeClientSetLoginError(errors.New("login error"))
+
+			By("By creating secret with keycloak credentials")
+			attributeSyncSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "sync-organization",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"username": []byte("user"),
+					"password": []byte("pw"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, attributeSyncSecret)).Should(Succeed())
+		})
+
+		It("It should update conditions with an error", func() {
+			ctx := context.Background()
+
+			By("By creating a sync config with target annotation")
+			attributeSync := &keycloakv1alpha1.AttributeSync{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "sync-organization",
+					Namespace: "default",
+				},
+				Spec: keycloakv1alpha1.AttributeSyncSpec{
+					Attribute:         attribute,
+					TargetAnnotation:  target,
+					CredentialsSecret: &keycloakv1alpha1.SecretRef{Name: "sync-organization", Namespace: "default"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, attributeSync)).Should(Succeed())
+
+			By("By querying the created object")
+			Eventually(func() (bool, error) {
+				instance := &keycloakv1alpha1.AttributeSync{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "sync-organization", Namespace: "default"}, instance)
+				if err != nil {
+					return false, err
+				}
+				_, exists := apis.GetCondition(apis.ReconcileError, instance.GetConditions())
+				return exists, nil
+			}, "10s", "250ms").Should(Equal(true))
+		})
+
+		AfterEach(func() {
+			ctx := context.Background()
+
+			keycloakFakeClient.FakeClientSetLoginError(nil)
+			k8sClient.DeleteAllOf(ctx, &keycloakv1alpha1.AttributeSync{}, client.InNamespace("default"))
+			k8sClient.DeleteAllOf(ctx, &corev1.Secret{}, client.InNamespace("default"))
+		})
+
+	})
+
 })
 
 func lookupAnnotationOnUser(ctx context.Context, username, annotation string) func() (string, error) {

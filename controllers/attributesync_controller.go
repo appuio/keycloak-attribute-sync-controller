@@ -24,6 +24,7 @@ import (
 	"github.com/Nerzal/gocloak/v9"
 	keycloakv1alpha1 "github.com/appuio/keycloak-attribute-sync-controller/api/v1alpha1"
 	userv1 "github.com/openshift/api/user/v1"
+	"github.com/redhat-cop/operator-utils/pkg/util/apis"
 	"github.com/robfig/cron"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -55,7 +56,8 @@ type AttributeSyncReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	l := log.FromContext(ctx)
+	l.Info("Reconciling")
 
 	instance := &keycloakv1alpha1.AttributeSync{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
@@ -71,26 +73,37 @@ func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	username, password, err := r.fetchCredentials(ctx, instance.Spec.CredentialsSecret.Name, instance.Spec.CredentialsSecret.Namespace)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed fetching credentials: %w", err)
+		err := fmt.Errorf("failed fetching credentials: %w", err)
+		r.setError(ctx, instance, err)
+		return ctrl.Result{}, err
 	}
 
-	token, err := client.LoginAdmin(ctx, username, password, instance.Spec.LoginRealm)
+	token, err := client.LoginAdmin(ctx, username, password, instance.GetLoginRealm())
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed binding to keycloak: %w", err)
+		err := fmt.Errorf("failed binding to keycloak: %w", err)
+		r.setError(ctx, instance, err)
+		return ctrl.Result{}, err
 	}
 
 	users, err := client.GetUsers(ctx, token.AccessToken, instance.Spec.Realm, gocloak.GetUsersParams{})
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error fetching users: %w", err)
+		err := fmt.Errorf("error fetching users: %w", err)
+		r.setError(ctx, instance, err)
+		return ctrl.Result{}, err
 	}
 
 	err = r.syncUsers(ctx, users, instance.Spec.Attribute, instance.Spec.TargetLabel, instance.Spec.TargetAnnotation)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error syncing users: %w", err)
+		err := fmt.Errorf("error syncing users: %w", err)
+		r.setError(ctx, instance, err)
+		return ctrl.Result{}, err
 	}
 
+	r.setSuccess(ctx, instance)
+
 	if instance.Spec.Schedule != "" {
-		sched, _ := cron.ParseStandard(instance.Spec.Schedule)
+		sched, err := cron.ParseStandard(instance.Spec.Schedule)
+		l.Error(err, "Error scheduling next reconcile")
 
 		currentTime := time.Now()
 		nextScheduledTime := sched.Next(currentTime)
@@ -133,6 +146,8 @@ func (r *AttributeSyncReconciler) fetchCredentials(ctx context.Context, secretNa
 
 func (r *AttributeSyncReconciler) syncUsers(ctx context.Context, users []*gocloak.User, attributeKey, targetLabel, targetAnnotation string) error {
 	l := log.FromContext(ctx)
+	l.Info("Syncing users", "count", len(users))
+	syncedCount := 0
 
 	for _, user := range users {
 		l := l.WithValues("userid", user.ID, "username", user.Username)
@@ -151,8 +166,10 @@ func (r *AttributeSyncReconciler) syncUsers(ctx context.Context, users []*gocloa
 		if err != nil {
 			return err
 		}
+		syncedCount++
 	}
 
+	l.Info("Synced users", "synced", syncedCount, "skipped", len(users)-syncedCount)
 	return nil
 }
 
@@ -204,4 +221,41 @@ func metaSetLabel(meta *metav1.ObjectMeta, key, value string) {
 		meta.Labels = map[string]string{}
 	}
 	meta.Labels[key] = value
+}
+
+func (r *AttributeSyncReconciler) setSuccess(ctx context.Context, instance *keycloakv1alpha1.AttributeSync) {
+	l := log.FromContext(ctx)
+
+	successTime := metav1.Now()
+	instance.Status.LastSyncSuccessTime = &successTime
+	condition := metav1.Condition{
+		Type:               apis.ReconcileSuccess,
+		LastTransitionTime: successTime,
+		ObservedGeneration: instance.GetGeneration(),
+		Reason:             apis.ReconcileSuccessReason,
+		Status:             metav1.ConditionTrue,
+	}
+	instance.SetConditions(apis.AddOrReplaceCondition(condition, instance.GetConditions()))
+	err := r.Client.Status().Update(ctx, instance)
+	if err != nil {
+		l.Error(err, "unable to update status")
+	}
+}
+
+func (r *AttributeSyncReconciler) setError(ctx context.Context, instance *keycloakv1alpha1.AttributeSync, reason error) {
+	l := log.FromContext(ctx)
+
+	condition := metav1.Condition{
+		Type:               apis.ReconcileError,
+		LastTransitionTime: metav1.Now(),
+		ObservedGeneration: instance.GetGeneration(),
+		Message:            reason.Error(),
+		Reason:             apis.ReconcileErrorReason,
+		Status:             metav1.ConditionTrue,
+	}
+	instance.SetConditions(apis.AddOrReplaceCondition(condition, instance.GetConditions()))
+	err := r.Client.Status().Update(ctx, instance)
+	if err != nil {
+		l.Error(err, "unable to update status")
+	}
 }
