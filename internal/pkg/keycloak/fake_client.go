@@ -10,16 +10,22 @@ import (
 type FakeClient struct {
 	token *gocloak.JWT
 	Users []*gocloak.User
+
+	loginError error
 }
 
 func (f *FakeClient) LoginAdmin(ctx context.Context, username, password, realm string) (*gocloak.JWT, error) {
 	f.token = &gocloak.JWT{}
 
-	return f.token, nil
+	return f.token, f.loginError
 }
 
 func (f *FakeClient) GetUsers(ctx context.Context, accessToken, realm string, params gocloak.GetUsersParams) ([]*gocloak.User, error) {
 	return f.Users, nil
+}
+
+func (f *FakeClient) FakeClientSetLoginError(err error) {
+	f.loginError = err
 }
 
 func (f *FakeClient) FakeClientSetUserAttribute(username string, attributeKey string, attributeValues ...string) error {

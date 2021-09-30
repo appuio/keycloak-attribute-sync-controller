@@ -113,6 +113,21 @@ type SecretRef struct {
 	Key string `json:"key,omitempty"`
 }
 
+func (a *AttributeSync) GetLoginRealm() string {
+	if a.Spec.LoginRealm == "" {
+		return "master"
+	}
+	return a.Spec.LoginRealm
+}
+
+func (a *AttributeSync) GetConditions() []metav1.Condition {
+	return a.Status.Conditions
+}
+
+func (a *AttributeSync) SetConditions(conditions []metav1.Condition) {
+	a.Status.Conditions = conditions
+}
+
 func init() {
 	SchemeBuilder.Register(&AttributeSync{}, &AttributeSyncList{})
 }
