@@ -107,10 +107,6 @@ type SecretRef struct {
 	// Namespace represents the namespace containing the secret
 	// +kubebuilder:validation:Required
 	Namespace string `json:"namespace"`
-
-	// Key represents the specific key to reference from the secret
-	// +kubebuilder:validation:Optional
-	Key string `json:"key,omitempty"`
 }
 
 func (a *AttributeSync) GetLoginRealm() string {

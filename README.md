@@ -14,16 +14,16 @@ kubectl apply -k config/default
 
 User Attributes stored within Keycloak can be synchronized into OpenShift. The following table describes the set of configuration options for the sync:
 
-| Name                | Description                                                                             | Defaults | Required |
-| ------------------- | --------------------------------------------------------------------------------------- | -------- | -------- |
-| `caSecret`          | Reference to a secret containing a SSL certificate to use for communication (See below) |          | No       |
-| `credentialsSecret` | Reference to a secret containing authentication details (See below)                     |          | Yes      |
-| `insecure`          | Ignore SSL verification                                                                 | `false`  | No       |
-| `loginRealm`        | Realm to authenticate against                                                           | `master` | No       |
-| `realm`             | Realm to synchronize                                                                    |          | Yes      |
-| `attribute`         | The attribute to sync to the user object                                                |          | Yes      |
-| `targetAnnotation`  | The annotation to sync the attribute to                                                 |          | No       |
-| `targetLabel`       | The label to sync the attribute to                                                      |          | No       |
+| Name                | Description                                                                                                     | Defaults | Required |
+| ------------------- | --------------------------------------------------------------------------------------------------------------- | -------- | -------- |
+| `caSecret`          | Reference to a secret containing a SSL certificate to use for communication. The CA must have the key `ca.crt`. |          | No       |
+| `credentialsSecret` | Reference to a secret containing authentication details (See below)                                             |          | Yes      |
+| `insecure`          | Ignore SSL verification                                                                                         | `false`  | No       |
+| `loginRealm`        | Realm to authenticate against                                                                                   | `master` | No       |
+| `realm`             | Realm to synchronize                                                                                            |          | Yes      |
+| `attribute`         | The attribute to sync to the user object                                                                        |          | Yes      |
+| `targetAnnotation`  | The annotation to sync the attribute to                                                                         |          | No       |
+| `targetLabel`       | The label to sync the attribute to                                                                              |          | No       |
 
 The following is an example of a minimal configuration that can be applied to integrate with a Keycloak provider:
 

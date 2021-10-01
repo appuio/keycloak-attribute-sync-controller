@@ -18,6 +18,8 @@ package controllers
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"time"
 
@@ -70,6 +72,12 @@ func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	client := r.KeycloakClientFactory(instance.Spec.URL)
+	err = r.setupClient(ctx, client, instance.Spec.CaSecret, instance.Spec.Insecure)
+	if err != nil {
+		err := fmt.Errorf("failed setting up keycloak rest client: %w", err)
+		r.setError(ctx, instance, err)
+		return ctrl.Result{}, err
+	}
 
 	username, password, err := r.fetchCredentials(ctx, instance.Spec.CredentialsSecret.Name, instance.Spec.CredentialsSecret.Namespace)
 	if err != nil {
@@ -264,4 +272,38 @@ func (r *AttributeSyncReconciler) setError(ctx context.Context, instance *keyclo
 	if err != nil {
 		l.Error(err, "unable to update status")
 	}
+}
+
+func (r *AttributeSyncReconciler) setupClient(ctx context.Context, kclient keycloak.Client, caSecretRef *keycloakv1alpha1.SecretRef, insecure bool) error {
+	const caSecretKey = "ca.crt"
+	restyClient := kclient.RestyClient()
+
+	if insecure == true {
+		restyClient.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+
+	if caSecretRef != nil {
+		caSecret := &corev1.Secret{}
+		err := r.Client.Get(ctx, types.NamespacedName{Namespace: caSecretRef.Namespace, Name: caSecretRef.Name}, caSecret)
+		if err != nil {
+			return fmt.Errorf("error fetching CA secret: %w", err)
+		}
+
+		ca, found := caSecret.Data[caSecretKey]
+		if !found {
+			return fmt.Errorf("found no certificate in '%s/%s' with key '%s'", caSecretRef.Namespace, caSecretRef.Name, caSecretKey)
+		}
+
+		tlsConfig := &tls.Config{}
+		if tlsConfig.RootCAs == nil {
+			tlsConfig.RootCAs = x509.NewCertPool()
+		}
+
+		tlsConfig.RootCAs.AppendCertsFromPEM(ca)
+
+		restyClient.SetTLSClientConfig(tlsConfig)
+	}
+
+	kclient.SetRestyClient(restyClient)
+	return nil
 }

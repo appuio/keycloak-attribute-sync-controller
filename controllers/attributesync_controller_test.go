@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/Nerzal/gocloak/v9"
@@ -49,7 +50,7 @@ var _ = Describe("AttributeSync controller", func() {
 			}
 			Expect(k8sClient.Create(ctx, ocpUser)).Should(Succeed())
 
-			By("By creating secret with keycloak credentials")
+			By("By creating secret with keycloak credentials and CA")
 			attributeSyncSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "sync-organization",
@@ -61,6 +62,18 @@ var _ = Describe("AttributeSync controller", func() {
 				},
 			}
 			Expect(k8sClient.Create(ctx, attributeSyncSecret)).Should(Succeed())
+			ca, err := os.ReadFile("./testdata/test.local.pem")
+			Expect(err).ShouldNot(HaveOccurred())
+			attributeSyncCaSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "sync-organization-ca",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"ca.crt": ca,
+				},
+			}
+			Expect(k8sClient.Create(ctx, attributeSyncCaSecret)).Should(Succeed())
 		})
 
 		AfterEach(func() {
@@ -85,6 +98,7 @@ var _ = Describe("AttributeSync controller", func() {
 					Attribute:         attribute,
 					TargetAnnotation:  target,
 					CredentialsSecret: &keycloakv1alpha1.SecretRef{Name: "sync-organization", Namespace: "default"},
+					CaSecret:          &keycloakv1alpha1.SecretRef{Name: "sync-organization-ca", Namespace: "default"},
 				},
 			}
 			Expect(k8sClient.Create(ctx, attributeSync)).Should(Succeed())

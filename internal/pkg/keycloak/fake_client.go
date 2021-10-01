@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Nerzal/gocloak/v9"
+	"github.com/go-resty/resty/v2"
 )
 
 type FakeClient struct {
@@ -13,6 +14,8 @@ type FakeClient struct {
 
 	loginError error
 }
+
+var _ Client = &FakeClient{}
 
 func (f *FakeClient) LoginAdmin(ctx context.Context, username, password, realm string) (*gocloak.JWT, error) {
 	f.token = &gocloak.JWT{}
@@ -23,6 +26,12 @@ func (f *FakeClient) LoginAdmin(ctx context.Context, username, password, realm s
 func (f *FakeClient) GetUsers(ctx context.Context, accessToken, realm string, params gocloak.GetUsersParams) ([]*gocloak.User, error) {
 	return f.Users, nil
 }
+
+func (f *FakeClient) RestyClient() *resty.Client {
+	return resty.New()
+}
+
+func (f *FakeClient) SetRestyClient(*resty.Client) {}
 
 func (f *FakeClient) FakeClientSetLoginError(err error) {
 	f.loginError = err
