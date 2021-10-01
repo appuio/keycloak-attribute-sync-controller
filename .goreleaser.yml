@@ -23,3 +23,8 @@ dockers:
   - "{{ if not .Prerelease }}quay.io/appuio/keycloak-attribute-sync-controller:latest{{ end }}"
 
   - "{{ if .Prerelease }}quay.io/appuio/keycloak-attribute-sync-controller:next{{ end }}"
+release:
+  prerelease: auto
+  github:
+    owner: appuio
+    name: keycloak-attribute-sync-controller
