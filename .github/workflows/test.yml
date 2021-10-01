@@ -24,14 +24,8 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-
-    - name: Tidy Go mod
-      run: go mod tidy
-    - name: Generate manifests
-      run: make manifests generate
-    - name: Check for changes in generated files
-      run: git diff --name-status --exit-code
-
+    - name: Run linters
+      run: make lint
     - name: Run tests
       run: make test
     - name: Upload code coverage report to Code Climate
