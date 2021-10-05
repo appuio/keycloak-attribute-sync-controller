@@ -52,7 +52,6 @@ spec:
                     type: string
                 required:
                 - name
-                - namespace
                 type: object
               credentialsSecret:
                 description: CredentialsSecret is a reference to a secret containing
@@ -67,7 +66,6 @@ spec:
                     type: string
                 required:
                 - name
-                - namespace
                 type: object
               insecure:
                 description: Insecure specifies whether to allow for unverified certificates

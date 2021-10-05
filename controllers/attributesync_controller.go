@@ -56,14 +56,14 @@ func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	client := r.KeycloakClientFactory(instance.Spec.URL)
-	err = r.setupClient(ctx, client, instance.Spec.CaSecret, instance.Spec.Insecure)
+	err = r.setupClient(ctx, client, instance.GetCaSecret(), instance.Spec.Insecure)
 	if err != nil {
 		err := fmt.Errorf("failed setting up Keycloak REST client: %w", err)
 		r.setError(ctx, instance, err)
 		return ctrl.Result{}, err
 	}
 
-	username, password, err := r.fetchCredentials(ctx, instance.Spec.CredentialsSecret.Name, instance.Spec.CredentialsSecret.Namespace)
+	username, password, err := r.fetchCredentials(ctx, instance.GetCredentialsSecret())
 	if err != nil {
 		err := fmt.Errorf("failed fetching credentials: %w", err)
 		r.setError(ctx, instance, err)
@@ -118,13 +118,13 @@ func (r *AttributeSyncReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *AttributeSyncReconciler) fetchCredentials(ctx context.Context, secretName, secretNamespace string) (string, string, error) {
+func (r *AttributeSyncReconciler) fetchCredentials(ctx context.Context, secretRef keycloakv1alpha1.SecretRef) (string, string, error) {
 	fmtErr := func(field string) error {
-		return fmt.Errorf("missing field `%s` in secret `%s/%s`", field, secretName, secretNamespace)
+		return fmt.Errorf("missing field `%s` in secret `%s/%s`", field, secretRef.Name, secretRef.Namespace)
 	}
 
 	secret := &corev1.Secret{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: secretName, Namespace: secretNamespace}, secret)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: secretRef.Name, Namespace: secretRef.Namespace}, secret)
 	if err != nil {
 		return "", "", err
 	}

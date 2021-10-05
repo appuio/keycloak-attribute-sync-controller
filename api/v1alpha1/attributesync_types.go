@@ -15,7 +15,7 @@ type AttributeSyncSpec struct {
 
 	// CredentialsSecret is a reference to a secret containing authentication details for the Keycloak server
 	// +kubebuilder:validation:Required
-	CredentialsSecret *SecretRef `json:"credentialsSecret"`
+	CredentialsSecret SecretRef `json:"credentialsSecret"`
 
 	// Insecure specifies whether to allow for unverified certificates to be used when communicating to Keycloak
 	// +kubebuilder:validation:Optional
@@ -89,8 +89,29 @@ type SecretRef struct {
 	Name string `json:"name"`
 
 	// Namespace represents the namespace containing the secret
-	// +kubebuilder:validation:Required
-	Namespace string `json:"namespace"`
+	// +kubebuilder:validation:Optional
+	Namespace string `json:"namespace,omitempty"`
+}
+
+func (a *AttributeSync) GetCaSecret() *SecretRef {
+	ref := a.Spec.CaSecret
+	if ref == nil {
+		return nil
+	}
+	ns := ref.Namespace
+	if ns == "" {
+		ns = a.ObjectMeta.Namespace
+	}
+	return &SecretRef{Name: ref.Name, Namespace: ns}
+}
+
+func (a *AttributeSync) GetCredentialsSecret() SecretRef {
+	ref := a.Spec.CredentialsSecret
+	ns := ref.Namespace
+	if ns == "" {
+		ns = a.ObjectMeta.Namespace
+	}
+	return SecretRef{Name: ref.Name, Namespace: ns}
 }
 
 func (a *AttributeSync) GetLoginRealm() string {
