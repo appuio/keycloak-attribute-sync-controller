@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"crypto/tls"
 	"path/filepath"
 	"testing"
 	"time"
@@ -77,7 +78,7 @@ var _ = BeforeSuite(func() {
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 
-		KeycloakClientFactory: func(string) keycloak.Client { return keycloakFakeClient },
+		KeycloakClientBuilder: func(string, string, string, string, *tls.Config) keycloak.Client { return keycloakFakeClient },
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

@@ -166,8 +166,8 @@ var _ = Describe("AttributeSync controller", func() {
 		BeforeEach(func() {
 			ctx := context.Background()
 
-			By("By having a keycloak login error")
-			keycloakFakeClient.FakeClientSetLoginError(errors.New("login error"))
+			By("By having a keycloak fetch error")
+			keycloakFakeClient.FakeClientSetError(errors.New("login error"))
 
 			By("By creating secret with keycloak credentials")
 			attributeSyncSecret := &corev1.Secret{
@@ -215,7 +215,7 @@ var _ = Describe("AttributeSync controller", func() {
 		AfterEach(func() {
 			ctx := context.Background()
 
-			keycloakFakeClient.FakeClientSetLoginError(nil)
+			keycloakFakeClient.FakeClientSetError(nil)
 			k8sClient.DeleteAllOf(ctx, &keycloakv1alpha1.AttributeSync{}, client.InNamespace("default"))
 			k8sClient.DeleteAllOf(ctx, &corev1.Secret{}, client.InNamespace("default"))
 		})

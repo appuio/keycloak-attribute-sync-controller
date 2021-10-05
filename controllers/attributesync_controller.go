@@ -7,14 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Nerzal/gocloak/v9"
 	keycloakv1alpha1 "github.com/appuio/keycloak-attribute-sync-controller/api/v1alpha1"
-	userv1 "github.com/openshift/api/user/v1"
-	"github.com/redhat-cop/operator-utils/pkg/util/apis"
 	"github.com/robfig/cron"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -22,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/appuio/keycloak-attribute-sync-controller/internal/pkg/keycloak"
+	"github.com/appuio/keycloak-attribute-sync-controller/internal/pkg/sync"
 )
 
 // AttributeSyncReconciler reconciles a AttributeSync object
@@ -29,7 +26,7 @@ type AttributeSyncReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 
-	KeycloakClientFactory keycloak.ClientFactory
+	KeycloakClientBuilder func(baseUrl, loginRealm, username, password string, tlsConfig *tls.Config) keycloak.Client
 }
 
 //+kubebuilder:rbac:groups=keycloak.appuio.io,resources=attributesyncs,verbs=get;list;watch;create;update;patch;delete
@@ -55,14 +52,6 @@ func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	client := r.KeycloakClientFactory(instance.Spec.URL)
-	err = r.setupClient(ctx, client, instance.GetCaSecret(), instance.Spec.Insecure)
-	if err != nil {
-		err := fmt.Errorf("failed setting up Keycloak REST client: %w", err)
-		r.setError(ctx, instance, err)
-		return ctrl.Result{}, err
-	}
-
 	username, password, err := r.fetchCredentials(ctx, instance.GetCredentialsSecret())
 	if err != nil {
 		err := fmt.Errorf("failed fetching credentials: %w", err)
@@ -70,21 +59,22 @@ func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	token, err := client.LoginAdmin(ctx, username, password, instance.GetLoginRealm())
+	tlsConfig, err := keycloakTLSConfig(ctx, r.Client, instance.GetCaSecret(), instance.Spec.Insecure)
 	if err != nil {
-		err := fmt.Errorf("failed binding to keycloak: %w", err)
+		err := fmt.Errorf("failed setting up tls config: %w", err)
 		r.setError(ctx, instance, err)
 		return ctrl.Result{}, err
 	}
 
-	users, err := client.GetUsers(ctx, token.AccessToken, instance.Spec.Realm, gocloak.GetUsersParams{})
-	if err != nil {
-		err := fmt.Errorf("error fetching users: %w", err)
-		r.setError(ctx, instance, err)
-		return ctrl.Result{}, err
-	}
+	client := r.KeycloakClientBuilder(
+		instance.Spec.URL,
+		instance.GetLoginRealm(),
+		username, password,
+		tlsConfig,
+	)
 
-	err = r.syncUsers(ctx, users, instance.Spec.Attribute, instance.Spec.TargetLabel, instance.Spec.TargetAnnotation)
+	syncer := sync.UserSyncer{KeycloakClient: client, K8sClient: r.Client}
+	err = syncer.Sync(ctx, instance.Spec.Realm, instance.Spec.Attribute, instance.Spec.TargetLabel, instance.Spec.TargetAnnotation)
 	if err != nil {
 		err := fmt.Errorf("error syncing users: %w", err)
 		r.setError(ctx, instance, err)
@@ -142,152 +132,29 @@ func (r *AttributeSyncReconciler) fetchCredentials(ctx context.Context, secretRe
 	return string(username), string(password), nil
 }
 
-func (r *AttributeSyncReconciler) syncUsers(ctx context.Context, users []*gocloak.User, attributeKey, targetLabel, targetAnnotation string) error {
-	l := log.FromContext(ctx)
-	l.Info("Syncing users", "count", len(users))
-	syncedCount := 0
-
-	for _, user := range users {
-		l := l.WithValues("userid", user.ID, "username", user.Username)
-		if user.Attributes == nil {
-			l.V(1).Info("user has no attributes - skipping")
-			continue
-		}
-		attributes, ok := (*user.Attributes)[attributeKey]
-		if !ok || len(attributes) < 1 {
-			l.V(1).Info("user has no attribute - skipping", "attribute", attributeKey)
-			continue
-		}
-		attribute := attributes[0]
-
-		err := r.setAttributeOnUser(ctx, types.NamespacedName{Name: *user.Username}, attribute, targetLabel, targetAnnotation)
-		if err != nil {
-			return err
-		}
-		syncedCount++
-	}
-
-	l.Info("Synced users", "synced", syncedCount, "skipped", len(users)-syncedCount)
-	return nil
-}
-
-func (r *AttributeSyncReconciler) setAttributeOnUser(ctx context.Context, key types.NamespacedName, attribute, targetLabel, targetAnnotation string) error {
-	l := log.FromContext(ctx)
-
-RETRY_ON_CONFLICT:
-	ocpuser := userv1.User{}
-	err := r.Client.Get(ctx, key, &ocpuser)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			l.V(1).Info("no OCP user object found - skipping")
-			return nil
-		}
-		return fmt.Errorf("error fetching user: %w", err)
-	}
-
-	if targetAnnotation != "" {
-		metaSetAnnotation(&ocpuser.ObjectMeta, targetAnnotation, attribute)
-	}
-	if targetLabel != "" {
-		metaSetLabel(&ocpuser.ObjectMeta, targetLabel, attribute)
-	}
-	metaSetAnnotation(&ocpuser.ObjectMeta, "attributesync.keycloak.appuio.io/sync-time", time.Now().Format(time.RFC3339Nano))
-
-	if err := r.Client.Update(ctx, &ocpuser); err != nil {
-		if apierrors.IsConflict(err) {
-			// The User has been updated since we read it.
-			goto RETRY_ON_CONFLICT
-		}
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("unable to update user: %w", err)
-	}
-
-	return nil
-}
-
-func metaSetAnnotation(meta *metav1.ObjectMeta, key, value string) {
-	if meta.Annotations == nil {
-		meta.Annotations = map[string]string{}
-	}
-	meta.Annotations[key] = value
-}
-
-func metaSetLabel(meta *metav1.ObjectMeta, key, value string) {
-	if meta.Labels == nil {
-		meta.Labels = map[string]string{}
-	}
-	meta.Labels[key] = value
-}
-
-func (r *AttributeSyncReconciler) setSuccess(ctx context.Context, instance *keycloakv1alpha1.AttributeSync) {
-	l := log.FromContext(ctx)
-
-	successTime := metav1.Now()
-	instance.Status.LastSyncSuccessTime = &successTime
-	condition := metav1.Condition{
-		Type:               apis.ReconcileSuccess,
-		LastTransitionTime: successTime,
-		ObservedGeneration: instance.GetGeneration(),
-		Reason:             apis.ReconcileSuccessReason,
-		Status:             metav1.ConditionTrue,
-	}
-	instance.SetConditions(apis.AddOrReplaceCondition(condition, instance.GetConditions()))
-	err := r.Client.Status().Update(ctx, instance)
-	if err != nil {
-		l.Error(err, "unable to update status")
-	}
-}
-
-func (r *AttributeSyncReconciler) setError(ctx context.Context, instance *keycloakv1alpha1.AttributeSync, reason error) {
-	l := log.FromContext(ctx)
-
-	condition := metav1.Condition{
-		Type:               apis.ReconcileError,
-		LastTransitionTime: metav1.Now(),
-		ObservedGeneration: instance.GetGeneration(),
-		Message:            reason.Error(),
-		Reason:             apis.ReconcileErrorReason,
-		Status:             metav1.ConditionTrue,
-	}
-	instance.SetConditions(apis.AddOrReplaceCondition(condition, instance.GetConditions()))
-	err := r.Client.Status().Update(ctx, instance)
-	if err != nil {
-		l.Error(err, "unable to update status")
-	}
-}
-
-func (r *AttributeSyncReconciler) setupClient(ctx context.Context, kclient keycloak.Client, caSecretRef *keycloakv1alpha1.SecretRef, insecure bool) error {
+func keycloakTLSConfig(ctx context.Context, client client.Client, caSecretRef *keycloakv1alpha1.SecretRef, insecure bool) (*tls.Config, error) {
 	const caSecretKey = "ca.crt"
-	restyClient := kclient.RestyClient()
+	conf := &tls.Config{InsecureSkipVerify: insecure}
 
-	if insecure == true {
-		restyClient.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	if caSecretRef == nil {
+		return conf, nil
 	}
 
-	if caSecretRef != nil {
-		caSecret := &corev1.Secret{}
-		err := r.Client.Get(ctx, types.NamespacedName{Namespace: caSecretRef.Namespace, Name: caSecretRef.Name}, caSecret)
-		if err != nil {
-			return fmt.Errorf("error fetching CA secret: %w", err)
-		}
-
-		ca, found := caSecret.Data[caSecretKey]
-		if !found {
-			return fmt.Errorf("found no certificate in '%s/%s' with key '%s'", caSecretRef.Namespace, caSecretRef.Name, caSecretKey)
-		}
-
-		tlsConfig := &tls.Config{}
-		if tlsConfig.RootCAs == nil {
-			tlsConfig.RootCAs = x509.NewCertPool()
-		}
-
-		tlsConfig.RootCAs.AppendCertsFromPEM(ca)
-
-		restyClient.SetTLSClientConfig(tlsConfig)
+	caSecret := &corev1.Secret{}
+	err := client.Get(ctx, types.NamespacedName{Namespace: caSecretRef.Namespace, Name: caSecretRef.Name}, caSecret)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching CA secret: %w", err)
 	}
 
-	kclient.SetRestyClient(restyClient)
-	return nil
+	ca, found := caSecret.Data[caSecretKey]
+	if !found {
+		return nil, fmt.Errorf("found no certificate in '%s/%s' with key '%s'", caSecretRef.Namespace, caSecretRef.Name, caSecretKey)
+	}
+
+	if conf.RootCAs == nil {
+		conf.RootCAs = x509.NewCertPool()
+	}
+	conf.RootCAs.AppendCertsFromPEM(ca)
+
+	return conf, nil
 }

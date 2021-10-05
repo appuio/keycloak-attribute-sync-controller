@@ -5,36 +5,20 @@ import (
 	"fmt"
 
 	"github.com/Nerzal/gocloak/v9"
-	"github.com/go-resty/resty/v2"
 )
 
 type FakeClient struct {
-	token *gocloak.JWT
 	Users []*gocloak.User
-
-	loginError error
+	err   error
 }
 
 var _ Client = &FakeClient{}
 
-func (f *FakeClient) LoginAdmin(ctx context.Context, username, password, realm string) (*gocloak.JWT, error) {
-	f.token = &gocloak.JWT{}
-
-	return f.token, f.loginError
-}
-
-func (f *FakeClient) GetUsers(ctx context.Context, accessToken, realm string, params gocloak.GetUsersParams) ([]*gocloak.User, error) {
+func (f *FakeClient) GetUsers(ctx context.Context, realm string, params gocloak.GetUsersParams) ([]*gocloak.User, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
 	return f.Users, nil
-}
-
-func (f *FakeClient) RestyClient() *resty.Client {
-	return resty.New()
-}
-
-func (f *FakeClient) SetRestyClient(*resty.Client) {}
-
-func (f *FakeClient) FakeClientSetLoginError(err error) {
-	f.loginError = err
 }
 
 func (f *FakeClient) FakeClientSetUserAttribute(username string, attributeKey string, attributeValues ...string) error {
@@ -50,6 +34,10 @@ func (f *FakeClient) FakeClientSetUserAttribute(username string, attributeKey st
 		return nil
 	}
 	return fmt.Errorf("user '%s' not found", username)
+}
+
+func (f *FakeClient) FakeClientSetError(err error) {
+	f.err = err
 }
 
 func UserWithAttribute(username string, attributeKey string, attributeValues ...string) *gocloak.User {
