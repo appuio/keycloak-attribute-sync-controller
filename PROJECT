@@ -1,0 +1,16 @@
+domain: appuio.io
+layout:
+- go.kubebuilder.io/v3
+projectName: keycloak-attribute-sync-controller
+repo: github.com/appuio/keycloak-attribute-sync-controller
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: appuio.io
+  group: keycloak
+  kind: AttributeSync
+  path: github.com/appuio/keycloak-attribute-sync-controller/api/v1alpha1
+  version: v1alpha1
+version: "3"
