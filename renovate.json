@@ -2,7 +2,10 @@
   "extends": [
     "config:base"
   ],
-  "gomod": {
-    "postUpdateOptions": ["gomodTidy"]
-  }
+  "labels": [
+    "dependency"
+  ],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ]
 }
