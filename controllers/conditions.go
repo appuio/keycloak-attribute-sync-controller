@@ -12,11 +12,9 @@ import (
 func (r *AttributeSyncReconciler) setSuccess(ctx context.Context, instance *keycloakv1alpha1.AttributeSync) {
 	l := log.FromContext(ctx)
 
-	successTime := metav1.Now()
-	instance.Status.LastSyncSuccessTime = &successTime
 	condition := metav1.Condition{
 		Type:               apis.ReconcileSuccess,
-		LastTransitionTime: successTime,
+		LastTransitionTime: metav1.Now(),
 		ObservedGeneration: instance.GetGeneration(),
 		Reason:             apis.ReconcileSuccessReason,
 		Status:             metav1.ConditionTrue,

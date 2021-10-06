@@ -50,10 +50,6 @@ type AttributeSyncSpec struct {
 type AttributeSyncStatus struct {
 	// +kubebuilder:validation:Optional
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
-
-	// LastSyncSuccessTime represents the time last synchronization completed successfully
-	// +kubebuilder:validation:Optional
-	LastSyncSuccessTime *metav1.Time `json:"lastSyncSuccessTime,omitempty"`
 }
 
 //+kubebuilder:object:root=true

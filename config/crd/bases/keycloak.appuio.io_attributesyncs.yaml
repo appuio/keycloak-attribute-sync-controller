@@ -166,11 +166,6 @@ spec:
                   - type
                   type: object
                 type: array
-              lastSyncSuccessTime:
-                description: LastSyncSuccessTime represents the time last synchronization
-                  completed successfully
-                format: date-time
-                type: string
             type: object
         type: object
     served: true
