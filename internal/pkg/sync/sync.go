@@ -66,7 +66,6 @@ func (u *UserSyncer) syncUsers(ctx context.Context, users []*gocloak.User, attri
 func (u *UserSyncer) setAttributeOnUser(ctx context.Context, key types.NamespacedName, attribute, targetLabel, targetAnnotation string) error {
 	l := log.FromContext(ctx)
 
-RETRY_ON_CONFLICT:
 	ocpuser := userv1.User{}
 	err := u.K8sClient.Get(ctx, key, &ocpuser)
 	if err != nil {
@@ -86,10 +85,6 @@ RETRY_ON_CONFLICT:
 	metaSetAnnotation(&ocpuser.ObjectMeta, "attributesync.keycloak.appuio.io/sync-time", time.Now().Format(time.RFC3339Nano))
 
 	if err := u.K8sClient.Update(ctx, &ocpuser); err != nil {
-		if apierrors.IsConflict(err) {
-			// The User has been updated since we read it.
-			goto RETRY_ON_CONFLICT
-		}
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
