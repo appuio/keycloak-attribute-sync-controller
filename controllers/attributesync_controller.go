@@ -107,7 +107,7 @@ func (r *AttributeSyncReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *AttributeSyncReconciler) fetchCredentials(ctx context.Context, secretRef keycloakv1alpha1.SecretRef) (string, string, error) {
+func (r *AttributeSyncReconciler) fetchCredentials(ctx context.Context, secretRef corev1.SecretReference) (string, string, error) {
 	fmtErr := func(field string) error {
 		return fmt.Errorf("missing field `%s` in secret `%s/%s`", field, secretRef.Name, secretRef.Namespace)
 	}
@@ -131,7 +131,7 @@ func (r *AttributeSyncReconciler) fetchCredentials(ctx context.Context, secretRe
 	return string(username), string(password), nil
 }
 
-func keycloakTLSConfig(ctx context.Context, client client.Client, caSecretRef *keycloakv1alpha1.SecretRef) (*tls.Config, error) {
+func keycloakTLSConfig(ctx context.Context, client client.Client, caSecretRef *corev1.SecretReference) (*tls.Config, error) {
 	const caSecretKey = "ca.crt"
 	conf := &tls.Config{}
 

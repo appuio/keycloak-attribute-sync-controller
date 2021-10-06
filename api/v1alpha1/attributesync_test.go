@@ -3,9 +3,11 @@ package v1alpha1_test
 import (
 	"testing"
 
-	"github.com/appuio/keycloak-attribute-sync-controller/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/appuio/keycloak-attribute-sync-controller/api/v1alpha1"
 )
 
 func TestAttributeSync_GetCaSecret(t *testing.T) {
@@ -19,7 +21,7 @@ func TestAttributeSync_GetCaSecret(t *testing.T) {
 		assert.Nil(t, subject.GetCaSecret())
 	})
 	t.Run("returns default if reference is set and namespace is empty", func(t *testing.T) {
-		subject.Spec.CaSecret = &v1alpha1.SecretRef{}
+		subject.Spec.CaSecret = &corev1.SecretReference{}
 		assert.Equal(t, nsName, subject.GetCaSecret().Namespace)
 	})
 	t.Run("returns namespace if set", func(t *testing.T) {

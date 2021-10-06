@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -11,11 +12,11 @@ import (
 type AttributeSyncSpec struct {
 	// CaSecret is a reference to a secret containing a CA certificate to communicate to the Keycloak server
 	// +kubebuilder:validation:Optional
-	CaSecret *SecretRef `json:"caSecret,omitempty"`
+	CaSecret *corev1.SecretReference `json:"caSecret,omitempty"`
 
 	// CredentialsSecret is a reference to a secret containing authentication details for the Keycloak server
 	// +kubebuilder:validation:Required
-	CredentialsSecret SecretRef `json:"credentialsSecret"`
+	CredentialsSecret corev1.SecretReference `json:"credentialsSecret"`
 
 	// LoginRealm is the Keycloak realm to authenticate against
 	// +kubebuilder:validation:Optional
@@ -73,19 +74,7 @@ type AttributeSyncList struct {
 	Items           []AttributeSync `json:"items"`
 }
 
-// SecretRef represents a reference to an item within a Secret
-// +k8s:openapi-gen=true
-type SecretRef struct {
-	// Name represents the name of the secret
-	// +kubebuilder:validation:Required
-	Name string `json:"name"`
-
-	// Namespace represents the namespace containing the secret
-	// +kubebuilder:validation:Optional
-	Namespace string `json:"namespace,omitempty"`
-}
-
-func (a *AttributeSync) GetCaSecret() *SecretRef {
+func (a *AttributeSync) GetCaSecret() *corev1.SecretReference {
 	ref := a.Spec.CaSecret
 	if ref == nil {
 		return nil
@@ -94,16 +83,16 @@ func (a *AttributeSync) GetCaSecret() *SecretRef {
 	if ns == "" {
 		ns = a.ObjectMeta.Namespace
 	}
-	return &SecretRef{Name: ref.Name, Namespace: ns}
+	return &corev1.SecretReference{Name: ref.Name, Namespace: ns}
 }
 
-func (a *AttributeSync) GetCredentialsSecret() SecretRef {
+func (a *AttributeSync) GetCredentialsSecret() corev1.SecretReference {
 	ref := a.Spec.CredentialsSecret
 	ns := ref.Namespace
 	if ns == "" {
 		ns = a.ObjectMeta.Namespace
 	}
-	return SecretRef{Name: ref.Name, Namespace: ns}
+	return corev1.SecretReference{Name: ref.Name, Namespace: ns}
 }
 
 func (a *AttributeSync) GetLoginRealm() string {

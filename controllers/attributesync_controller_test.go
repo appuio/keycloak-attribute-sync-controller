@@ -97,8 +97,8 @@ var _ = Describe("AttributeSync controller", func() {
 				Spec: keycloakv1alpha1.AttributeSyncSpec{
 					Attribute:         attribute,
 					TargetAnnotation:  target,
-					CredentialsSecret: keycloakv1alpha1.SecretRef{Name: "sync-organization", Namespace: "default"},
-					CaSecret:          &keycloakv1alpha1.SecretRef{Name: "sync-organization-ca", Namespace: "default"},
+					CredentialsSecret: corev1.SecretReference{Name: "sync-organization", Namespace: "default"},
+					CaSecret:          &corev1.SecretReference{Name: "sync-organization-ca", Namespace: "default"},
 				},
 			}
 			Expect(k8sClient.Create(ctx, attributeSync)).Should(Succeed())
@@ -123,7 +123,7 @@ var _ = Describe("AttributeSync controller", func() {
 				Spec: keycloakv1alpha1.AttributeSyncSpec{
 					Attribute:         attribute,
 					TargetLabel:       target,
-					CredentialsSecret: keycloakv1alpha1.SecretRef{Name: "sync-organization", Namespace: "default"},
+					CredentialsSecret: corev1.SecretReference{Name: "sync-organization", Namespace: "default"},
 				},
 			}
 			Expect(k8sClient.Create(ctx, attributeSyncLabelTarget)).Should(Succeed())
@@ -149,7 +149,7 @@ var _ = Describe("AttributeSync controller", func() {
 						Attribute:         attribute,
 						TargetAnnotation:  target,
 						Schedule:          "@every 1s",
-						CredentialsSecret: keycloakv1alpha1.SecretRef{Name: "sync-organization", Namespace: "default"},
+						CredentialsSecret: corev1.SecretReference{Name: "sync-organization", Namespace: "default"},
 					},
 				}
 				Expect(k8sClient.Create(ctx, attributeSync)).Should(Succeed())
@@ -195,7 +195,7 @@ var _ = Describe("AttributeSync controller", func() {
 				Spec: keycloakv1alpha1.AttributeSyncSpec{
 					Attribute:         attribute,
 					TargetAnnotation:  target,
-					CredentialsSecret: keycloakv1alpha1.SecretRef{Name: "sync-organization", Namespace: "default"},
+					CredentialsSecret: corev1.SecretReference{Name: "sync-organization", Namespace: "default"},
 				},
 			}
 			Expect(k8sClient.Create(ctx, attributeSync)).Should(Succeed())
