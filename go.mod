@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/Nerzal/gocloak/v9 v9.0.2
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.13.0
+	github.com/onsi/gomega v1.16.0
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/redhat-cop/operator-utils v1.1.4
 	github.com/robfig/cron v1.2.0
