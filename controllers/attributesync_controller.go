@@ -10,7 +10,6 @@ import (
 	keycloakv1alpha1 "github.com/appuio/keycloak-attribute-sync-controller/api/v1alpha1"
 	"github.com/robfig/cron"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,11 +44,11 @@ func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	instance := &keycloakv1alpha1.AttributeSync{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			return ctrl.Result{}, nil
-		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	if !instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Object is in the process of beeing deleted.
+		return ctrl.Result{}, nil
 	}
 
 	username, password, err := r.fetchCredentials(ctx, instance.GetCredentialsSecret())
