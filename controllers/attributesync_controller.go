@@ -58,7 +58,7 @@ func (r *AttributeSyncReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	tlsConfig, err := keycloakTLSConfig(ctx, r.Client, instance.GetCaSecret(), instance.Spec.Insecure)
+	tlsConfig, err := keycloakTLSConfig(ctx, r.Client, instance.GetCaSecret())
 	if err != nil {
 		err := fmt.Errorf("failed setting up tls config: %w", err)
 		r.setError(ctx, instance, err)
@@ -131,9 +131,9 @@ func (r *AttributeSyncReconciler) fetchCredentials(ctx context.Context, secretRe
 	return string(username), string(password), nil
 }
 
-func keycloakTLSConfig(ctx context.Context, client client.Client, caSecretRef *keycloakv1alpha1.SecretRef, insecure bool) (*tls.Config, error) {
+func keycloakTLSConfig(ctx context.Context, client client.Client, caSecretRef *keycloakv1alpha1.SecretRef) (*tls.Config, error) {
 	const caSecretKey = "ca.crt"
-	conf := &tls.Config{InsecureSkipVerify: insecure}
+	conf := &tls.Config{}
 
 	if caSecretRef == nil {
 		return conf, nil

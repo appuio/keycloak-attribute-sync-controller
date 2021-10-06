@@ -67,10 +67,6 @@ spec:
                 required:
                 - name
                 type: object
-              insecure:
-                description: Insecure specifies whether to allow for unverified certificates
-                  to be used when communicating to Keycloak
-                type: boolean
               loginRealm:
                 description: LoginRealm is the Keycloak realm to authenticate against
                 type: string

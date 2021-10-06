@@ -19,7 +19,6 @@ The following table describes the set of configuration options for the sync:
 | ------------------- | --------------------------------------------------------------------------------------------------------------- | -------- | -------- |
 | `caSecret`          | Reference to a secret containing a SSL certificate to use for communication. The CA must have the key `ca.crt`. |          | No       |
 | `credentialsSecret` | Reference to a secret containing authentication details (See below)                                             |          | Yes      |
-| `insecure`          | Ignore SSL verification                                                                                         | `false`  | No       |
 | `loginRealm`        | Realm to authenticate against                                                                                   | `master` | No       |
 | `realm`             | Realm to synchronize                                                                                            |          | Yes      |
 | `attribute`         | The attribute to sync to the user object                                                                        |          | Yes      |

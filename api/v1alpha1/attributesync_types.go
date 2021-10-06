@@ -17,10 +17,6 @@ type AttributeSyncSpec struct {
 	// +kubebuilder:validation:Required
 	CredentialsSecret SecretRef `json:"credentialsSecret"`
 
-	// Insecure specifies whether to allow for unverified certificates to be used when communicating to Keycloak
-	// +kubebuilder:validation:Optional
-	Insecure bool `json:"insecure,omitempty"`
-
 	// LoginRealm is the Keycloak realm to authenticate against
 	// +kubebuilder:validation:Optional
 	LoginRealm string `json:"loginRealm,omitempty"`
