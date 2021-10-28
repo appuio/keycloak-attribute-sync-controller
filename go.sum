@@ -48,8 +48,8 @@ github.com/Masterminds/goutils v1.1.1/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy86
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
 github.com/Masterminds/sprig/v3 v3.2.2/go.mod h1:UoaO7Yp8KlPnJIYWTFkMaqPUYKTfGFPhxNuwnnxkKlk=
 github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46/go.mod h1:3wb06e3pkSAbeQ52E9H9iFoQsEEwGN64994WTCIhntQ=
-github.com/Nerzal/gocloak/v9 v9.0.2 h1:B+vwpW9sgXgyvT6j1Dr6zz/IOReLoitiGXyl2eeP/So=
-github.com/Nerzal/gocloak/v9 v9.0.2/go.mod h1:AmXlpCliq31R1r/18ei7/ML5mfJDmJ1pTBoFU79DDZg=
+github.com/Nerzal/gocloak/v9 v9.0.4 h1:ggUV+PRYQ7A66R5F3KLv0V8DEfwKMRTl1F8c5YxFUu8=
+github.com/Nerzal/gocloak/v9 v9.0.4/go.mod h1:AmXlpCliq31R1r/18ei7/ML5mfJDmJ1pTBoFU79DDZg=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
