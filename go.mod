@@ -10,7 +10,7 @@ require (
 	github.com/redhat-cop/operator-utils v1.1.4
 	github.com/robfig/cron v1.2.0
 	github.com/stretchr/testify v1.7.0
-	k8s.io/api v0.20.2
+	k8s.io/api v0.22.4
 	k8s.io/apiextensions-apiserver v0.20.1
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
