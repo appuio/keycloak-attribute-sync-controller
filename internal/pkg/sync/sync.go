@@ -23,7 +23,7 @@ type UserSyncer struct {
 
 func (u *UserSyncer) Sync(ctx context.Context, realm, attribute, targetLabel, targetAnnotation string) error {
 	users, err := u.KeycloakClient.GetUsers(ctx, realm, gocloak.GetUsersParams{
-		Max: gocloak.IntP(5000),
+		Max: gocloak.IntP(-1),
 	})
 	if err != nil {
 		return fmt.Errorf("error fetching users: %w", err)
