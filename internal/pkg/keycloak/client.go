@@ -38,5 +38,5 @@ func (g *gocloakClient) GetUsers(ctx context.Context, realm string, params goclo
 		return nil, fmt.Errorf("failed binding to keycloak: %w", err)
 	}
 
-	return g.client.GetUsers(ctx, token.AccessToken, realm, gocloak.GetUsersParams{})
+	return g.client.GetUsers(ctx, token.AccessToken, realm, params)
 }
