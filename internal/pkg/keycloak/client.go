@@ -37,6 +37,8 @@ func (g *gocloakClient) GetUsers(ctx context.Context, realm string, params goclo
 	if err != nil {
 		return nil, fmt.Errorf("failed binding to keycloak: %w", err)
 	}
+	// `admin-cli` is the magic client used when authenticating to the admin API
+	defer g.client.LogoutPublicClient(ctx, "admin-cli", g.loginRealm, token.AccessToken, token.RefreshToken)
 
 	return g.client.GetUsers(ctx, token.AccessToken, realm, params)
 }
