@@ -1,6 +1,6 @@
 module github.com/appuio/keycloak-attribute-sync-controller
 
-go 1.17
+go 1.21
 
 require (
 	github.com/Nerzal/gocloak/v9 v9.0.4
