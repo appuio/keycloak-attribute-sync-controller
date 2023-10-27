@@ -1,4 +1,4 @@
-FROM docker.io/library/alpine:3.14
+FROM docker.io/library/alpine:3.18
 
 RUN apk add --no-cache curl
 
