@@ -1,3 +1,5 @@
+⚠️ This project is no longer used at APPUiO and thus no longer maintained. ⚠️
+
 # keycloak-attribute-sync-controller
 
 Kubernetes Operator to sync Keycloak attributes to Openshift user objects.
