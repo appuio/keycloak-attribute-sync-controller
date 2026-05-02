@@ -7,7 +7,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
 	github.com/openshift/api v3.9.0+incompatible
-	github.com/redhat-cop/operator-utils v1.1.4
+	github.com/redhat-cop/operator-utils/v2 v2.0.0
 	github.com/robfig/cron v1.2.0
 	github.com/stretchr/testify v1.8.4
 	k8s.io/api v0.20.2
